@@ -1,9 +1,9 @@
 from django.db import models
 from django.conf import settings
-from django.core.cache import cache
+import collections
 import sqlite3
-import time
 import os
+import re
 
 def get_bucket(timestamp, resolution):
     """ Normalize the timestamp to the given resolution. """
@@ -18,6 +18,12 @@ def updates(rows, resolution):
     """ Yields parameters appropriate for the UPDATE statement. """
     for name, value, timestamp in rows:
         yield value, value, value, value, name, get_bucket(timestamp, resolution)
+
+def matches(rows, pattern):
+    regex = pattern.replace('.', '\\.').replace('*', '.*')
+    for name, value, timestamp in rows:
+        if re.match(regex, name, re.I):
+            yield name, value, timestamp
 
 class Archive (models.Model):
     name = models.CharField(max_length=200)
@@ -39,6 +45,9 @@ class Archive (models.Model):
         self.create_if_needed()
         super(Archive, self).save(**kwargs)
 
+    def get_absolute_url(self):
+        return '/archive/%s/' % self.slug
+
     def create_if_needed(self):
         if not os.path.exists(settings.TALLY_DATA_DIR):
             os.makedirs(settings.TALLY_DATA_DIR)
@@ -58,6 +67,7 @@ class Archive (models.Model):
 
     def store(self, rows):
         if rows:
+            rows = list(matches(rows, self.pattern))
             # Executing paramaterized INSERTs/UPDATEs is faster inside a transaction.
             with self.database as db:
                 # Make sure records with default values exist for any name/timestamp we're about to update.
@@ -76,12 +86,23 @@ class Archive (models.Model):
             return len(rows)
         return 0
 
-    def values(self, pattern='*', aggregate='sum', since=None, until=None):
-        names = {}
-        where = "name LIKE '%s'" % pattern.replace('*', '%') if '*' in pattern else "name = '%s'" % pattern
+    def values(self, pattern=None, aggregate=None, by='time', since=None, until=None):
+        # TODO: SQL injection possibilities abound!
+        data = collections.OrderedDict()
+        clauses = []
+        if pattern:
+            clauses.append("name LIKE '%s'" % pattern.replace('*', '%') if '*' in pattern else "name = '%s'" % pattern)
+        if since:
+            clauses.append('timestamp >= %s' % since)
+        if until:
+            clauses.append('timestamp <= %s' % until)
+        sel = 'timestamp, name' if by == 'name' else 'name, timestamp'
+        agg = 'agg_%s' % aggregate if aggregate else 'agg_count, agg_sum, agg_avg, agg_min, agg_max'
+        where = 'WHERE ' + ' AND '.join(clauses) if clauses else ''
         cursor = self.database.cursor()
-        cursor.execute('SELECT name, timestamp, agg_%s FROM data WHERE %s' % (aggregate, where))
+        cursor.execute('SELECT %s, %s FROM data %s ORDER BY %s' % (sel, agg, where, sel))
         for row in cursor.fetchall():
-            names.setdefault(row[0], []).append((row[1], row[2]))
+            value = row[2] if aggregate else {'count': row[2], 'sum': row[3], 'avg': row[4], 'min': row[5], 'max': row[6]}
+            data.setdefault(row[0], collections.OrderedDict())[row[1]] = value
         cursor.close()
-        return names
+        return data
