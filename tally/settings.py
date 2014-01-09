@@ -86,5 +86,11 @@ LOGGING = {
     },
 }
 
+# Required
 TALLY_DATA_DIR = os.path.join(BASE_DIR, 'data')
+
+# Optional
+TALLY_HOST = '127.0.0.1'
+TALLY_PORT = 8900
 TALLY_FLUSH_TIME = 5.0
+TALLY_INSTALL_ADMIN = True

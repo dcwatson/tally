@@ -1,0 +1,100 @@
+{% load static %}
+
+<!doctype html>
+<html>
+    <head>
+        <title>Tally Dashboard</title>
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" />
+        <style>
+            #chart { margin-top: 20px; width: 100%; height: 250px; }
+            .flot-x-axis .flot-tick-label { -webkit-transform-origin: 0% 0%; -webkit-transform: translate(50%, 0) rotate(45deg); }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Tally Dashboard</h1>
+            <div class="form-inline">
+                <div class="form-group">
+                    <select id="archive" name="archive" class="form-control">
+                        {% for arc in archives %}
+                            <option value="{% url "tally-aggregate" slug=arc.slug %}">{{ arc }} - {{ arc.pattern }} - {{ arc.resolution }}s resolution</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="aggregate" name="aggregate" class="form-control">
+                        <option value="avg">Average</option>
+                        <option value="min">Minimum</option>
+                        <option value="max">Maximum</option>
+                        <option value="sum">Sum</option>
+                        <option value="count">Count</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="by" name="by" class="form-control">
+                        <option value="time">By Time</option>
+                        <option value="name">By Name</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="q" class="input-large form-control" value="*" id="pattern" />
+                </div>
+                <button class="btn btn-primary" id="generate">Generate</button>
+            </div>
+            <div id="chart"></div>
+        </div>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+        <script src="{% static "flot/jquery.flot.min.js" %}"></script>
+        <script src="{% static "flot/jquery.flot.time.min.js" %}"></script>
+        <script src="{% static "flot/jquery.flot.categories.min.js" %}"></script>
+        <script src="{% static "flot/jquery.flot.fillbetween.min.js" %}"></script>
+        <script>
+            $(function() {
+                $('#generate').click(function() {
+                    var agg = $('#aggregate').val();
+                    var by = $('#by').val();
+                    var url = $('#archive').val() + agg + '/by' + by + '/';
+                    var query = $('#pattern').val();
+                    $.get(url, {q: query}, function(data) {
+                        var series = {
+                            label: agg,
+                            data: []
+                        };
+                        for(var key in data) {
+                            // Flot expects timestamps to be in milliseconds, not seconds.
+                            var ts = by == 'name' ? key : parseInt(key) * 1000;
+                            series.data.push([ts, data[key]]);
+                        }
+                        var options = {
+                            grid: { hoverable: true }
+                        };
+                        if(by == 'name') {
+                            options.xaxis = {
+                                mode: 'categories',
+                                tickLength: 0
+                            };
+                            options.series = {
+                                bars: {
+                                    show: true,
+                                    barWidth: 0.5,
+                                    align: 'center'
+                                }
+                            };
+                        }
+                        else {
+                            options.xaxis = {
+                                mode: 'time',
+                                timezone: 'browser',
+                                timeformat: '%I:%M%p'
+                            };
+                        }
+                        $.plot('#chart', [series], options);
+                    });
+                    return false;
+                });
+            });
+        </script>
+    </body>
+</html>

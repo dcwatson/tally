@@ -32,6 +32,7 @@ def listener(queue, kill):
             pass
 
 def flusher(queue, kill):
+    flush_time = getattr(settings, 'TALLY_FLUSH_TIME', 5.0)
     while not kill.is_set():
         start = time.time()
         rows = []
@@ -47,7 +48,7 @@ def flusher(queue, kill):
                 if num:
                     logger.debug('Processed %d records into archive "%s" in %fs', num, a, time.time() - s)
             logger.debug('Finished flush of %d records in %fs', len(rows), time.time() - start)
-        time.sleep(settings.TALLY_FLUSH_TIME)
+        time.sleep(flush_time)
 
 class Command (BaseCommand):
 

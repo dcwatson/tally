@@ -1,9 +1,13 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 import collections
 import sqlite3
 import os
 import re
+
+if not hasattr(settings, 'TALLY_DATA_DIR'):
+    raise ImproperlyConfigured('You must specify a TALLY_DATA_DIR setting to use tally.')
 
 def get_bucket(timestamp, resolution):
     """ Normalize the timestamp to the given resolution. """
@@ -11,7 +15,7 @@ def get_bucket(timestamp, resolution):
 
 def inserts(rows, resolution):
     """ Yields the name and timestamp bucket for the INSERT statement. """
-    for name, value, timestamp in rows:
+    for name, _value, timestamp in rows:
         yield name, get_bucket(timestamp, resolution)
 
 def updates(rows, resolution):
@@ -30,10 +34,10 @@ class Archive (models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField()
     pattern = models.CharField(max_length=100, default='*')
-    resolution = models.IntegerField(help_text='Resolution in seconds.')
-    retention = models.IntegerField(help_text='Retention period in hours.')
+    resolution = models.IntegerField(default=5, help_text='Resolution in seconds.')
+    retention = models.IntegerField(default=24, help_text='Retention period in hours.')
+    enabled = models.BooleanField(default=True)
 
-    cache_key = property(lambda self: '%s-pending' % self.slug)
     db_path = property(lambda self: os.path.join(settings.TALLY_DATA_DIR, '%s.db' % self.slug))
 
     @property
@@ -48,9 +52,6 @@ class Archive (models.Model):
     def save(self, **kwargs):
         self.create_if_needed()
         super(Archive, self).save(**kwargs)
-
-    def get_absolute_url(self):
-        return '/archive/%s/' % self.slug
 
     def create_if_needed(self):
         if not os.path.exists(settings.TALLY_DATA_DIR):
@@ -126,13 +127,14 @@ class Archive (models.Model):
         cursor.close()
         return data
 
-    def aggregate(self, pattern=None, aggregate=None, since=None, until=None):
+    def aggregate(self, pattern=None, aggregate=None, by='time', since=None, until=None):
         data = collections.OrderedDict()
         where, params = self.where(pattern, since, until)
+        sel = 'timestamp' if by == 'time' else 'name'
         aggs = ['sum(agg_count)', 'sum(agg_sum)', 'avg(agg_avg)', 'min(agg_min)', 'max(agg_max)']
         agg_index = {'count': 0, 'sum': 1, 'avg': 2, 'min': 3, 'max': 4}
         agg = aggs[agg_index[aggregate]] if aggregate else ', '.join(aggs)
-        sql = 'SELECT timestamp, %s FROM data%s GROUP BY timestamp ORDER BY timestamp' % (agg, where)
+        sql = 'SELECT %s, %s FROM data%s GROUP BY %s ORDER BY %s' % (sel, agg, where, sel, sel)
         cursor = self.database.cursor()
         cursor.execute(sql, params)
         for row in cursor.fetchall():
