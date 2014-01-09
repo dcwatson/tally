@@ -92,20 +92,28 @@ class Archive (models.Model):
         return 0
 
     def values(self, pattern=None, aggregate=None, by='time', since=None, until=None):
-        # TODO: SQL injection possibilities abound!
         data = collections.OrderedDict()
         clauses = []
+        params = []
         if pattern:
-            clauses.append("name LIKE '%s'" % pattern.replace('*', '%') if '*' in pattern else "name = '%s'" % pattern)
+            if '*' in pattern:
+                clauses.append('name LIKE ?')
+                params.append(pattern.replace('*', '%'))
+            else:
+                clauses.append('name = ?')
+                params.append(pattern)
         if since:
-            clauses.append('timestamp >= %s' % since)
+            clauses.append('timestamp >= ?')
+            params.append(since)
         if until:
-            clauses.append('timestamp <= %s' % until)
+            clauses.append('timestamp <= ?')
+            params.append(since)
         sel = 'timestamp, name' if by == 'name' else 'name, timestamp'
         agg = 'agg_%s' % aggregate if aggregate else 'agg_count, agg_sum, agg_avg, agg_min, agg_max'
         where = 'WHERE ' + ' AND '.join(clauses) if clauses else ''
+        sql = 'SELECT %s, %s FROM data %s ORDER BY %s' % (sel, agg, where, sel)
         cursor = self.database.cursor()
-        cursor.execute('SELECT %s, %s FROM data %s ORDER BY %s' % (sel, agg, where, sel))
+        cursor.execute(sql, params)
         for row in cursor.fetchall():
             value = row[2] if aggregate else {'count': row[2], 'sum': row[3], 'avg': row[4], 'min': row[5], 'max': row[6]}
             data.setdefault(row[0], collections.OrderedDict())[row[1]] = value
