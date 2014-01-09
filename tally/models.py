@@ -91,8 +91,8 @@ class Archive (models.Model):
             return len(rows)
         return 0
 
-    def values(self, pattern=None, aggregate=None, by='time', since=None, until=None):
-        data = collections.OrderedDict()
+    def where(self, pattern=None, since=None, until=None):
+        sql = ''
         clauses = []
         params = []
         if pattern:
@@ -107,15 +107,36 @@ class Archive (models.Model):
             params.append(since)
         if until:
             clauses.append('timestamp <= ?')
-            params.append(since)
+            params.append(until)
+        if clauses:
+            sql = ' WHERE ' + ' AND '.join(clauses)
+        return sql, params
+
+    def values(self, pattern=None, aggregate=None, by='time', since=None, until=None):
+        data = collections.OrderedDict()
+        where, params = self.where(pattern, since, until)
         sel = 'timestamp, name' if by == 'name' else 'name, timestamp'
         agg = 'agg_%s' % aggregate if aggregate else 'agg_count, agg_sum, agg_avg, agg_min, agg_max'
-        where = 'WHERE ' + ' AND '.join(clauses) if clauses else ''
-        sql = 'SELECT %s, %s FROM data %s ORDER BY %s' % (sel, agg, where, sel)
+        sql = 'SELECT %s, %s FROM data%s ORDER BY %s' % (sel, agg, where, sel)
         cursor = self.database.cursor()
         cursor.execute(sql, params)
         for row in cursor.fetchall():
             value = row[2] if aggregate else {'count': row[2], 'sum': row[3], 'avg': row[4], 'min': row[5], 'max': row[6]}
             data.setdefault(row[0], collections.OrderedDict())[row[1]] = value
+        cursor.close()
+        return data
+
+    def aggregate(self, pattern=None, aggregate=None, since=None, until=None):
+        data = collections.OrderedDict()
+        where, params = self.where(pattern, since, until)
+        aggs = ['sum(agg_count)', 'sum(agg_sum)', 'avg(agg_avg)', 'min(agg_min)', 'max(agg_max)']
+        agg_index = {'count': 0, 'sum': 1, 'avg': 2, 'min': 3, 'max': 4}
+        agg = aggs[agg_index[aggregate]] if aggregate else ', '.join(aggs)
+        sql = 'SELECT timestamp, %s FROM data%s GROUP BY timestamp ORDER BY timestamp' % (agg, where)
+        cursor = self.database.cursor()
+        cursor.execute(sql, params)
+        for row in cursor.fetchall():
+            value = row[1] if aggregate else {'count': row[1], 'sum': row[2], 'avg': row[3], 'min': row[4], 'max': row[5]}
+            data[row[0]] = value
         cursor.close()
         return data

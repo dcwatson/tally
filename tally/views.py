@@ -14,12 +14,23 @@ def archives(request):
         json_kwargs['indent'] = 2
     return HttpResponse(json.dumps(data, **json_kwargs), content_type='application/json')
 
-def archive(request, slug, aggregate=None, by='time'):
+def values(request, slug, aggregate=None, by='time'):
     archive = get_object_or_404(Archive, slug=slug)
     q = request.GET.get('q')
     since = int(request.GET['since']) if 'since' in request.GET else None
     until = int(request.GET['until']) if 'until' in request.GET else None
     data = archive.values(pattern=q, aggregate=aggregate, by=by, since=since, until=until)
+    json_kwargs = {}
+    if 'pretty' in request.GET:
+        json_kwargs['indent'] = 2
+    return HttpResponse(json.dumps(data, **json_kwargs), content_type='application/json')
+
+def aggregate(request, slug, aggregate=None):
+    archive = get_object_or_404(Archive, slug=slug)
+    q = request.GET.get('q')
+    since = int(request.GET['since']) if 'since' in request.GET else None
+    until = int(request.GET['until']) if 'until' in request.GET else None
+    data = archive.aggregate(pattern=q, aggregate=aggregate, since=since, until=until)
     json_kwargs = {}
     if 'pretty' in request.GET:
         json_kwargs['indent'] = 2
