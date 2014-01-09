@@ -22,7 +22,8 @@ def updates(rows, resolution):
 def matches(rows, pattern):
     regex = pattern.replace('.', '\\.').replace('*', '.*')
     for name, value, timestamp in rows:
-        if re.match(regex, name, re.I):
+        # Short-circuit the regex match for * patterns.
+        if pattern == '*' or re.match(regex, name, re.I):
             yield name, value, timestamp
 
 class Archive (models.Model):
@@ -40,6 +41,9 @@ class Archive (models.Model):
         if not getattr(self, '_db', None):
             self._db = sqlite3.connect(self.db_path)
         return self._db
+
+    def __unicode__(self):
+        return self.name
 
     def save(self, **kwargs):
         self.create_if_needed()
@@ -67,6 +71,7 @@ class Archive (models.Model):
 
     def store(self, rows):
         if rows:
+            # Limit the rows to those matching our pattern.
             rows = list(matches(rows, self.pattern))
             # Executing paramaterized INSERTs/UPDATEs is faster inside a transaction.
             with self.database as db:

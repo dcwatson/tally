@@ -14,6 +14,5 @@ class Command (BaseCommand):
         for _i in range(int(args[0])):
             key = '%s.%s' % (args[1], random.randint(1, int(args[2])))
             value = random.randint(1, 100)
-            when = now + random.randint(-3600, 3600)
+            when = now - random.randint(0, 3600)
             tally.tally(key, value, when)
-            time.sleep(0.001)
