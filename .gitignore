@@ -37,3 +37,6 @@ nosetests.xml
 
 # Databases
 *.db
+
+# Docs
+docs/_build/
