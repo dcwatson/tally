@@ -8,6 +8,9 @@ import time
 TALLY_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def tally(name, value=1, timestamp=None, host=None, port=None):
+    """
+    Sends a metric to the specified host:port
+    """
     if host is None:
         host = getattr(settings, 'TALLY_HOST', '127.0.0.1')
     if port is None:
