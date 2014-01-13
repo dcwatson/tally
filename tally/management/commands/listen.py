@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 def listener(queue, kill):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('127.0.0.1', 8900))
+    host = getattr(settings, 'TALLY_HOST', '127.0.0.1')
+    port = getattr(settings, 'TALLY_PORT', 8900)
+    sock.bind((host, port))
     sock.settimeout(1.0)
     while not kill.is_set():
         try:
@@ -45,9 +47,10 @@ def flusher(queue, kill):
             for a in Archive.objects.all():
                 s = time.time()
                 num = a.store(rows)
+                deleted = a.trim()
                 if num:
-                    logger.debug('Processed %d records into archive "%s" in %fs', num, a, time.time() - s)
-            logger.debug('Finished flush of %d records in %fs', len(rows), time.time() - start)
+                    logger.debug('Inserted %d into, and deleted %d from, archive "%s" in %fs', num, deleted, a, time.time() - s)
+            logger.debug('Finished flush of %d record(s) in %fs', len(rows), time.time() - start)
         time.sleep(flush_time)
 
 class Command (BaseCommand):

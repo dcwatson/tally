@@ -3,8 +3,11 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 import collections
 import sqlite3
+import logging
 import os
 import re
+
+logger = logging.getLogger(__name__)
 
 if not hasattr(settings, 'TALLY_DATA_DIR'):
     raise ImproperlyConfigured('You must specify a TALLY_DATA_DIR setting to use tally.')
@@ -14,16 +17,17 @@ def get_bucket(timestamp, resolution):
     return resolution * (int(timestamp) // resolution)
 
 def inserts(rows, resolution):
-    """ Yields the name and timestamp bucket for the INSERT statement. """
+    """ Yields the name and timestamp bucket for the INSERT statement in Archive.store. """
     for name, _value, timestamp in rows:
         yield name, get_bucket(timestamp, resolution)
 
 def updates(rows, resolution):
-    """ Yields parameters appropriate for the UPDATE statement. """
+    """ Yields parameters appropriate for the UPDATE statement in Archive.store. """
     for name, value, timestamp in rows:
         yield value, value, value, value, name, get_bucket(timestamp, resolution)
 
 def matches(rows, pattern):
+    """ Yields rows matching the specified glob pattern. """
     regex = pattern.replace('.', '\\.').replace('*', '.*')
     for name, value, timestamp in rows:
         # Short-circuit the regex match for * patterns.
@@ -71,9 +75,9 @@ class Archive (models.Model):
             """)
 
     def store(self, rows):
+        # Limit the rows to those matching our pattern.
+        rows = list(matches(rows, self.pattern))
         if rows:
-            # Limit the rows to those matching our pattern.
-            rows = list(matches(rows, self.pattern))
             # Executing paramaterized INSERTs/UPDATEs is faster inside a transaction.
             with self.database as db:
                 # Make sure records with default values exist for any name/timestamp we're about to update.
@@ -91,6 +95,16 @@ class Archive (models.Model):
                 """, updates(rows, self.resolution))
             return len(rows)
         return 0
+
+    def trim(self):
+        """
+        Removes any data points older than the retention time of the archive. The cutoff time is relative
+        to the latest timestamp in the database, not the current time.
+        """
+        with self.database as db:
+            last = db.execute('SELECT max(timestamp) FROM data').fetchone()[0]
+            cutoff = int(last) - (self.retention * 60 * 60)
+            return db.execute('DELETE FROM data WHERE timestamp < ?', (cutoff,)).rowcount
 
     def where(self, pattern=None, since=None, until=None):
         sql = ''
