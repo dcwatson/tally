@@ -1,0 +1,4 @@
+include LICENSE
+include README.md
+exclude tally/settings.py
+exclude tally/wsgi.py
