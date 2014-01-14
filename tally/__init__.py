@@ -20,7 +20,8 @@ def tally(name, value=1, timestamp=None, host=None, port=None):
         host = getattr(settings, 'TALLY_HOST', '127.0.0.1')
     if port is None:
         port = getattr(settings, 'TALLY_PORT', 8900)
-    parts = [str(name), str(value)]
+    prefix = getattr(settings, 'TALLY_PREFIX', '')
+    parts = [prefix + str(name), str(value)]
     if timestamp:
         if hasattr(timestamp, 'timetuple'):
             timestamp = time.mktime(timestamp.timetuple())

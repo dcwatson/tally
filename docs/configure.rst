@@ -9,6 +9,9 @@ Settings
 * ``TALLY_PORT``: The port tally should use (default: 8900)
 * ``TALLY_FLUSH_TIME``: The time, in seconds, between flushes of received metric data (default: 5)
 * ``TALLY_INSTALL_ADMIN``: Whether the Django admin should be included in tally's URLconf. Typically set to True for standalone installations, and False for embedded application installations.
+* ``TALLY_PREFIX``: If specified, this string will be prepended to every metric the client sends (default: '')
+
+.. _middleware:
 
 Middleware
 ----------
