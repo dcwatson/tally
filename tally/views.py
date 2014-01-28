@@ -27,7 +27,9 @@ def data(request, slug, method=None, aggregate=None, by='time'):
     q = request.GET.get('q')
     since = int(request.GET['since']) if 'since' in request.GET else None
     until = int(request.GET['until']) if 'until' in request.GET else None
-    data = data_func(pattern=q, aggregate=aggregate, by=by, since=since, until=until)
+    low = request.GET['low'] if 'low' in request.GET else None
+    high = request.GET['high'] if 'high' in request.GET else None
+    data = data_func(pattern=q, aggregate=aggregate, by=by, since=since, until=until, low=low, high=high)
     json_kwargs = {}
     if 'pretty' in request.GET:
         json_kwargs['indent'] = 2

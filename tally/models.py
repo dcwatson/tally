@@ -106,7 +106,7 @@ class Archive (models.Model):
             cutoff = int(last) - (self.retention * 60 * 60)
             return db.execute('DELETE FROM data WHERE timestamp < ?', (cutoff,)).rowcount
 
-    def where(self, pattern=None, since=None, until=None):
+    def where(self, pattern=None, since=None, until=None, aggregate=None, low=None, high=None):
         sql = ''
         clauses = []
         params = []
@@ -123,13 +123,19 @@ class Archive (models.Model):
         if until:
             clauses.append('timestamp <= ?')
             params.append(until)
+        if aggregate and low is not None:
+            clauses.append('agg_%s >= ?' % aggregate)
+            params.append(float(low))
+        if aggregate and high is not None:
+            clauses.append('agg_%s <= ?' % aggregate)
+            params.append(float(high))
         if clauses:
             sql = ' WHERE ' + ' AND '.join(clauses)
         return sql, params
 
-    def values(self, pattern=None, aggregate=None, by='time', since=None, until=None):
+    def values(self, pattern=None, aggregate=None, by='time', since=None, until=None, low=None, high=None):
         data = collections.OrderedDict()
-        where, params = self.where(pattern, since, until)
+        where, params = self.where(pattern, since, until, aggregate=aggregate, low=low, high=high)
         sel = 'timestamp, name' if by == 'name' else 'name, timestamp'
         agg = 'agg_%s' % aggregate if aggregate else 'agg_count, agg_sum, agg_avg, agg_min, agg_max'
         sql = 'SELECT %s, %s FROM data%s ORDER BY %s' % (sel, agg, where, sel)
@@ -141,14 +147,24 @@ class Archive (models.Model):
         cursor.close()
         return data
 
-    def aggregate(self, pattern=None, aggregate=None, by='time', since=None, until=None):
+    def aggregate(self, pattern=None, aggregate=None, by='time', since=None, until=None, low=None, high=None):
         data = collections.OrderedDict()
         where, params = self.where(pattern, since, until)
         sel = 'timestamp' if by == 'time' else 'name'
         aggs = ['sum(agg_count)', 'sum(agg_sum)', 'avg(agg_avg)', 'min(agg_min)', 'max(agg_max)']
         agg_index = {'count': 0, 'sum': 1, 'avg': 2, 'min': 3, 'max': 4}
         agg = aggs[agg_index[aggregate]] if aggregate else ', '.join(aggs)
-        sql = 'SELECT %s, %s FROM data%s GROUP BY %s ORDER BY %s' % (sel, agg, where, sel, sel)
+        having = ''
+        if aggregate and (low is not None or high is not None):
+            clauses = []
+            if low is not None:
+                clauses.append('%s >= ?' % agg)
+                params.append(float(low))
+            if high is not None:
+                clauses.append('%s <= ?' % agg)
+                params.append(float(high))
+            having = ' HAVING ' + ' AND '.join(clauses)
+        sql = 'SELECT %s, %s FROM data%s GROUP BY %s%s ORDER BY %s' % (sel, agg, where, sel, having, sel)
         cursor = self.database.cursor()
         cursor.execute(sql, params)
         for row in cursor.fetchall():
