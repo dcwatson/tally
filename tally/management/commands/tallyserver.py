@@ -44,7 +44,7 @@ def flusher(queue, kill):
         except Queue.Empty:
             pass
         if rows:
-            for a in Archive.objects.all():
+            for a in Archive.objects.filter(enabled=True):
                 s = time.time()
                 num = a.store(rows)
                 deleted = a.trim()
