@@ -1,4 +1,4 @@
-__version_info__ = (0, 3, 0)
+__version_info__ = (0, 4, 0)
 __version__ = '.'.join(str(i) for i in __version_info__)
 
 import socket
@@ -12,7 +12,14 @@ except ImportError:
 
 TALLY_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-def tally(name, value=1, timestamp=None, host=None, port=None):
+def archives():
+    """
+    Returns a QuerySet of all enabled Archives.
+    """
+    from .models import Archive
+    return Archive.objects.filter(enabled=True)
+
+def tally(data, value=1, timestamp=None, host=None, port=None):
     """
     Sends a metric to the specified host:port
     """
@@ -21,24 +28,56 @@ def tally(name, value=1, timestamp=None, host=None, port=None):
     if port is None:
         port = getattr(settings, 'TALLY_PORT', 8900)
     prefix = getattr(settings, 'TALLY_PREFIX', '')
-    name = prefix + str(name)
+    if not isinstance(data, (list, tuple)):
+        data = [data]
     value = float(value)
     if timestamp:
         if hasattr(timestamp, 'timetuple'):
             timestamp = time.mktime(timestamp.timetuple())
         timestamp = int(timestamp)
+    rows = []
+    for d in data:
+        row = []
+        if isinstance(d, (list, tuple)):
+            # First element is the metric name.
+            if len(d) >= 1:
+                name = str(d[0])
+                if not name.startswith(prefix):
+                    name = prefix + name
+                row.append(name)
+            else:
+                # If we get an empty list or tuple, ignore it.
+                continue
+            # Second element is the value. Use the default if none specified.
+            if len(d) >= 2:
+                row.append(float(d[1]))
+            else:
+                row.append(value)
+            # Third element is the timestamp. Use the default if none specified and host is None,
+            # otherwise leave it off and only send the server name and value.
+            if len(d) >= 3:
+                row.append(int(d[2]))
+            elif host is None:
+                row.append(timestamp or int(time.time()))
+        else:
+            name = str(d)
+            if not name.startswith(prefix):
+                name = prefix + name
+            row.append(name)
+            row.append(value)
+            # If recording directly to the database, Archive.store expects 3-tuples with a timestamp.
+            # Otherwise, let the server use its local time.
+            if host is None:
+                row.append(timestamp or int(time.time()))
+        rows.append(row)
     if host is None:
-        # If no host is specified, assume the tally should be written to all Archives locally.
-        from .models import Archive
-        if timestamp is None:
-            timestamp = int(time.time())
-        rows = [(name, value, timestamp)]
-        for a in Archive.objects.filter(enabled=True):
+        # If no host is specified, assume the tallies should be written to all Archives locally.
+        for a in archives():
             a.store(rows)
             a.trim()
     else:
-        # If a host and port are specified, send the tally in a UDP packet.
-        parts = [name, str(value)]
-        if timestamp:
-            parts.append(str(timestamp))
-        TALLY_SOCKET.sendto(' '.join(parts), (host, port))
+        # If a host and port are specified, send the tallies in a UDP packet.
+        lines = []
+        for row in rows:
+            lines.append(' '.join(str(p) for p in row))
+        TALLY_SOCKET.sendto('\n'.join(lines), (host, port))

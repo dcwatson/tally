@@ -18,16 +18,17 @@ def listener(queue, kill):
     sock.settimeout(1.0)
     while not kill.is_set():
         try:
-            data, _addr = sock.recvfrom(1024)
-            parts = data.split()[:3]
-            parts[1] = float(parts[1])
-            if len(parts) > 2:
-                # If a timestamp was sent in, use it.
-                parts[2] = int(float(parts[2]))
-            else:
-                # Otherwise, grab the current time and use that.
-                parts.append(int(time.time()))
-            queue.put(parts)
+            lines, _addr = sock.recvfrom(1024)
+            for data in lines.split('\n'):
+                parts = data.split()[:3]
+                parts[1] = float(parts[1])
+                if len(parts) > 2:
+                    # If a timestamp was sent in, use it.
+                    parts[2] = int(float(parts[2]))
+                else:
+                    # Otherwise, grab the current time and use that.
+                    parts.append(int(time.time()))
+                queue.put(parts)
         except socket.timeout:
             pass
         except:

@@ -44,6 +44,9 @@ class Archive (models.Model):
 
     db_path = property(lambda self: os.path.join(settings.TALLY_DATA_DIR, '%s.db' % self.slug))
 
+    class Meta:
+        ordering = ('retention', 'resolution')
+
     @property
     def database(self):
         if not getattr(self, '_db', None):
@@ -75,6 +78,7 @@ class Archive (models.Model):
             """)
 
     def store(self, rows):
+        self.create_if_needed()
         # Limit the rows to those matching our pattern.
         rows = list(matches(rows, self.pattern))
         if rows:
@@ -155,6 +159,7 @@ class Archive (models.Model):
         agg_index = {'count': 0, 'sum': 1, 'avg': 2, 'min': 3, 'max': 4}
         agg = aggs[agg_index[aggregate]] if aggregate else ', '.join(aggs)
         having = ''
+        order = '1'
         if aggregate and (low is not None or high is not None):
             clauses = []
             if low is not None:
@@ -164,7 +169,9 @@ class Archive (models.Model):
                 clauses.append('%s <= ?' % agg)
                 params.append(float(high))
             having = ' HAVING ' + ' AND '.join(clauses)
-        sql = 'SELECT %s, %s FROM data%s GROUP BY %s%s ORDER BY %s' % (sel, agg, where, sel, having, sel)
+        if aggregate:
+            order = '2 DESC, 1'
+        sql = 'SELECT %s, %s FROM data%s GROUP BY %s%s ORDER BY %s' % (sel, agg, where, sel, having, order)
         cursor = self.database.cursor()
         cursor.execute(sql, params)
         for row in cursor.fetchall():
