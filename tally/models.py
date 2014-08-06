@@ -37,6 +37,7 @@ def matches(rows, pattern):
 class Archive (models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField()
+    description = models.TextField(blank=True)
     pattern = models.CharField(max_length=100, default='*')
     resolution = models.IntegerField(default=5, help_text='Resolution in seconds.')
     retention = models.IntegerField(default=24, help_text='Retention period in hours.')
@@ -46,6 +47,10 @@ class Archive (models.Model):
 
     class Meta:
         ordering = ('retention', 'resolution')
+
+    @property
+    def data_points(self):
+        return int((self.retention * 60 * 60) / self.resolution)
 
     @property
     def database(self):
@@ -143,12 +148,9 @@ class Archive (models.Model):
         sel = 'timestamp, name' if by == 'name' else 'name, timestamp'
         agg = 'agg_%s' % aggregate if aggregate else 'agg_count, agg_sum, agg_avg, agg_min, agg_max'
         sql = 'SELECT %s, %s FROM data%s ORDER BY %s' % (sel, agg, where, sel)
-        cursor = self.database.cursor()
-        cursor.execute(sql, params)
-        for row in cursor.fetchall():
+        for row in self.database.execute(sql, params):
             value = row[2] if aggregate else {'count': row[2], 'sum': row[3], 'avg': row[4], 'min': row[5], 'max': row[6]}
             data.setdefault(row[0], collections.OrderedDict())[row[1]] = value
-        cursor.close()
         return data
 
     def aggregate(self, pattern=None, aggregate=None, by='time', since=None, until=None, low=None, high=None):
@@ -172,10 +174,14 @@ class Archive (models.Model):
         if aggregate:
             order = '2 DESC, 1'
         sql = 'SELECT %s, %s FROM data%s GROUP BY %s%s ORDER BY %s' % (sel, agg, where, sel, having, order)
-        cursor = self.database.cursor()
-        cursor.execute(sql, params)
-        for row in cursor.fetchall():
+        for row in self.database.execute(sql, params):
             value = row[1] if aggregate else {'count': row[1], 'sum': row[2], 'avg': row[3], 'min': row[4], 'max': row[5]}
             data[row[0]] = value
-        cursor.close()
         return data
+
+    def timedata(self, pattern=None, aggregate=None, default=None):
+        data = self.aggregate(pattern=pattern, aggregate=aggregate)
+        latest = max(data.keys())
+        for i in range(self.data_points):
+            t = latest - (i * self.resolution)
+            yield t, data.get(t, default)
