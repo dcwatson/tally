@@ -1,25 +1,27 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from tally.models import Archive
 import threading
 import functools
 import logging
 import socket
+import tally
 import Queue
 import time
 
 logger = logging.getLogger(__name__)
 
-def listener(queue, kill):
+def listener(queue, kill, host=None, port=None, timeout=1.0):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    host = getattr(settings, 'TALLY_HOST', '127.0.0.1')
-    port = getattr(settings, 'TALLY_PORT', 8900)
+    if host is None:
+        host = getattr(settings, 'TALLY_HOST', '127.0.0.1')
+    if port is None:
+        port = getattr(settings, 'TALLY_PORT', 8900)
     sock.bind((host, port))
-    sock.settimeout(1.0)
+    sock.settimeout(timeout)
     while not kill.is_set():
         try:
             lines, _addr = sock.recvfrom(1024)
-            for data in lines.split('\n'):
+            for data in lines.decode('utf-8').split('\n'):
                 parts = data.split()[:3]
                 parts[1] = float(parts[1])
                 if len(parts) > 2:
@@ -34,8 +36,9 @@ def listener(queue, kill):
         except:
             pass
 
-def flusher(queue, kill):
-    flush_time = getattr(settings, 'TALLY_FLUSH_TIME', 5.0)
+def flusher(queue, kill, flush_time=None):
+    if flush_time is None:
+        flush_time = getattr(settings, 'TALLY_FLUSH_TIME', 5.0)
     while not kill.is_set():
         start = time.time()
         rows = []
@@ -45,7 +48,7 @@ def flusher(queue, kill):
         except Queue.Empty:
             pass
         if rows:
-            for a in Archive.objects.filter(enabled=True):
+            for a in tally.archives():
                 s = time.time()
                 num = a.store(rows)
                 deleted = a.trim()

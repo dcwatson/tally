@@ -42,3 +42,6 @@ nosetests.xml
 
 # Docs
 docs/_build/
+
+# Tests
+data

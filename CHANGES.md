@@ -1,3 +1,11 @@
+0.5.0
+=====
+
+- Started a test suite
+- Changed `Archive.timedata` to return data in order from earliest to latest, and added a `reverse` flag
+- Simplified setup.py, switched to setuptools
+
+
 0.4.1
 =====
 

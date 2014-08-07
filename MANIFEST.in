@@ -1,4 +1,6 @@
+exclude tally/settings.py
+exclude tally/tests.py
 include LICENSE
 include README.md
-exclude tally/settings.py
-exclude tally/wsgi.py
+recursive-include tally/static *
+recursive-include tally/templates *

@@ -1,0 +1,38 @@
+[
+{
+    "fields": {
+        "pattern": "*",
+        "enabled": true,
+        "name": "Today",
+        "resolution": 900,
+        "slug": "daily",
+        "retention": 24
+    },
+    "model": "tally.archive",
+    "pk": 1
+},
+{
+    "fields": {
+        "pattern": "*",
+        "enabled": true,
+        "name": "Last 7 Days",
+        "resolution": 3600,
+        "slug": "weekly",
+        "retention": 168
+    },
+    "model": "tally.archive",
+    "pk": 2
+},
+{
+    "fields": {
+        "pattern": "*",
+        "enabled": true,
+        "name": "Last 365 Days",
+        "resolution": 86400,
+        "slug": "yearly",
+        "retention": 8760
+    },
+    "model": "tally.archive",
+    "pk": 3
+}
+]

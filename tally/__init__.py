@@ -1,4 +1,4 @@
-__version_info__ = (0, 4, 1)
+__version_info__ = (0, 5, 0)
 __version__ = '.'.join(str(i) for i in __version_info__)
 
 import socket
@@ -6,7 +6,7 @@ import time
 
 try:
     from django.conf import settings
-except ImportError:
+except:
     # Don't require Django if only using the UDP client.
     settings = None
 
@@ -27,7 +27,7 @@ def tally(data, value=1, timestamp=None, host=None, port=None):
         host = getattr(settings, 'TALLY_HOST', None)
     if port is None:
         port = getattr(settings, 'TALLY_PORT', 8900)
-    prefix = getattr(settings, 'TALLY_PREFIX', '')
+    prefix = unicode(getattr(settings, 'TALLY_PREFIX', ''))
     if not isinstance(data, (list, tuple)):
         data = [data]
     value = float(value)
@@ -41,7 +41,7 @@ def tally(data, value=1, timestamp=None, host=None, port=None):
         if isinstance(d, (list, tuple)):
             # First element is the metric name.
             if len(d) >= 1:
-                name = str(d[0])
+                name = unicode(d[0])
                 if not name.startswith(prefix):
                     name = prefix + name
                 row.append(name)
@@ -60,7 +60,7 @@ def tally(data, value=1, timestamp=None, host=None, port=None):
             elif host is None:
                 row.append(timestamp or int(time.time()))
         else:
-            name = str(d)
+            name = unicode(d)
             if not name.startswith(prefix):
                 name = prefix + name
             row.append(name)
@@ -79,5 +79,5 @@ def tally(data, value=1, timestamp=None, host=None, port=None):
         # If a host and port are specified, send the tallies in a UDP packet.
         lines = []
         for row in rows:
-            lines.append(' '.join(str(p) for p in row))
-        TALLY_SOCKET.sendto('\n'.join(lines), (host, port))
+            lines.append(u' '.join(unicode(p) for p in row))
+        TALLY_SOCKET.sendto(u'\n'.join(lines).encode('utf-8'), (host, port))
