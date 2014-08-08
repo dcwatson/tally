@@ -1,0 +1,30 @@
+{% load static %}
+
+<!doctype html>
+<html>
+    <head>
+        <title>Tally Dashboard</title>
+        <link href="{% static "tally/css/bootstrap.min.css" %}" rel="stylesheet" />
+        <link href="{% static "tally/css/tally.css" %}" rel="stylesheet" />
+    </head>
+    <body>
+        <div class="sidebar">
+            <h1>Tally</h1>
+            {% for a in archives %}
+                <a href="{% url "tally-archive" slug=a.slug %}" class="archive{% if a == archive %} active{% endif %}">
+                    <span class="glyphicon glyphicon-stats"></span>
+                    {{ a }}
+                    {% if a.description %}<span class="description">{{ a.description }}</span>{% endif %}
+                </a>
+            {% endfor %}
+        </div>
+        <div class="container-fluid content">
+            {% block content %}
+            {% endblock %}
+        </div>
+        <script src="{% static "tally/js/jquery-1.11.1.min.js" %}"></script>
+        <script src="{% static "tally/js/bootstrap.min.js" %}"></script>
+        <script src="{% static "tally/js/d3.v3.min.js" %}"></script>
+        <script src="{% static "tally/js/tally.js" %}"></script>
+    </body>
+</html>

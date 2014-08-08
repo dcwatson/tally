@@ -179,8 +179,8 @@ class Archive (models.Model):
             data[row[0]] = value
         return data
 
-    def timedata(self, pattern=None, aggregate=None, default=None, reverse=False):
-        data = self.aggregate(pattern=pattern, aggregate=aggregate)
+    def timedata(self, pattern=None, aggregate=None, by='time', since=None, until=None, low=None, high=None, default=None, reverse=False):
+        data = self.aggregate(pattern=pattern, aggregate=aggregate, since=since, until=until, low=low, high=high)
         if data:
             latest = max(data.keys())
             earliest = latest - ((self.data_points - 1) * self.resolution)

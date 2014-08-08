@@ -3,6 +3,7 @@ from django.conf import settings
 
 urlpatterns = patterns('tally.views',
     url(r'^$', 'dashboard'),
+    url(r'^a/(?P<slug>[^/]+)/$', 'dashboard', name='tally-archive'),
 
     url(r'^archives/$', 'archives', name='tally-archives'),
 
@@ -15,6 +16,9 @@ urlpatterns = patterns('tally.views',
     url(r'^aggregate/(?P<slug>[^/]+)/by(?P<by>[^/]+)/$', 'data', {'method': 'aggregate'}),
     url(r'^aggregate/(?P<slug>[^/]+)/(?P<aggregate>[^/]+)/$', 'data', {'method': 'aggregate'}),
     url(r'^aggregate/(?P<slug>[^/]+)/(?P<aggregate>[^/]+)/by(?P<by>[^/]+)/$', 'data', {'method': 'aggregate'}),
+
+    url(r'^timedata/(?P<slug>[^/]+)/$', 'data', {'method': 'timedata'}, name='tally-timedata'),
+    url(r'^timedata/(?P<slug>[^/]+)/(?P<aggregate>[^/]+)/$', 'data', {'method': 'timedata'}),
 )
 
 if getattr(settings, 'TALLY_INSTALL_ADMIN', False):

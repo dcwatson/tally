@@ -4,9 +4,14 @@ from django.http import HttpResponse
 from tally.models import Archive
 import json
 
-def dashboard(request):
+def dashboard(request, slug=None):
+    try:
+        archive = Archive.objects.get(slug__iexact=slug)
+    except:
+        archive = None
     return render(request, 'tally/dashboard.html', {
         'archives': Archive.objects.all(),
+        'archive': archive,
     })
 
 def archives(request):
@@ -30,6 +35,8 @@ def data(request, slug, method=None, aggregate=None, by='time'):
     low = request.GET['low'] if 'low' in request.GET else None
     high = request.GET['high'] if 'high' in request.GET else None
     data = data_func(pattern=q, aggregate=aggregate, by=by, since=since, until=until, low=low, high=high)
+    if method == 'timedata':
+        data = list(data)
     json_kwargs = {}
     if 'pretty' in request.GET:
         json_kwargs['indent'] = 2
