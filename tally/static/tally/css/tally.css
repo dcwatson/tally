@@ -12,9 +12,6 @@ body {
 
 a {
     color: #7ACCC8;
-    /*
-    color: #A3D39C;
-    */
 }
 
 h1, h2 {
@@ -36,7 +33,6 @@ h1, h2 {
 
 .sidebar h1 {
     padding: 20px;
-    border-bottom: 1px solid #333;
 }
 
 a.archive {
@@ -60,11 +56,51 @@ a.archive.active {
 
 .content h2 {
     padding: 20px;
-    border-bottom: 1px solid #eee;
 }
 
 .filter {
-    padding: 10px 20px;
+    padding: 0px 20px 10px 20px;
     border-bottom: 1px solid #eee;
+    box-shadow: 0px 2px 2px #bbb;
 }
 .filter .col-md-4, .filter .col-md-8 { padding: 0; }
+.filter select { margin-left: 20px; }
+
+.chart {
+    height: 400px;
+    margin: 20px;
+}
+
+/* SVG */
+
+.axis {
+    font-size: 11px;
+}
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.axis path, .x.axis .tick line {
+    display: none;
+}
+
+.grid {
+    fill: none;
+    stroke: #eee;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+.area {
+  fill: steelblue;
+}
+.line {
+    fill: none;
+    stroke-width: 2px;
+    /*
+    shape-rendering: crispEdges;
+    */
+}

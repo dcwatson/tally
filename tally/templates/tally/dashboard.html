@@ -5,19 +5,34 @@
 <div class="row filter">
     <div class="col-md-8">
         <label class="checkbox-inline">
-            <input type="checkbox" /> Count
+            <input type="checkbox" class="toggle" name="show" value="count" checked="checked" /> Count
         </label>
         <label class="checkbox-inline">
-            <input type="checkbox" /> Average
+            <input type="checkbox" class="toggle" name="show" value="avg" /> Average
         </label>
         <label class="checkbox-inline">
-            <input type="checkbox" /> Sum
+            <input type="checkbox" class="toggle" name="show" value="sum" /> Sum
         </label>
+        <label class="checkbox-inline">
+            <input type="checkbox" class="toggle" name="show" value="min" /> Min
+        </label>
+        <label class="checkbox-inline">
+            <input type="checkbox" class="toggle" name="show" value="max" /> Max
+        </label>
+        <select name="interpolate" class="toggle">
+            <option value="step">Step</option>
+            <option value="step-before">Step Before</option>
+            <option value="step-after">Step After</option>
+            <option value="linear">Linear</option>
+            <option value="basis">Basis</option>
+            <option value="cardinal">Cardinal</option>
+            <option value="monotone">Monotone</option>
+        </select>
     </div>
     <div class="col-md-4">
         <input type="text" class="form-control input-sm" />
     </div>
 </div>
-<div class="chart" data-url="{% url "tally-timedata" slug=archive.slug %}">
+<div class="chart" data-url="{% url "tally-timedata" slug=archive.slug %}" data-resolution="{{ archive.resolution }}">
 </div>
 {% endblock %}

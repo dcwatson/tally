@@ -4,11 +4,13 @@ from django.http import HttpResponse
 from tally.models import Archive
 import json
 
-def dashboard(request, slug=None):
-    try:
-        archive = Archive.objects.get(slug__iexact=slug)
-    except:
-        archive = None
+def index(request):
+    return render(request, 'tally/index.html', {
+        'archives': Archive.objects.all(),
+    })
+
+def dashboard(request, slug):
+    archive = get_object_or_404(Archive, slug__iexact=slug)
     return render(request, 'tally/dashboard.html', {
         'archives': Archive.objects.all(),
         'archive': archive,

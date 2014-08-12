@@ -2,8 +2,8 @@ from django.conf.urls import patterns, include, url
 from django.conf import settings
 
 urlpatterns = patterns('tally.views',
-    url(r'^$', 'dashboard'),
-    url(r'^a/(?P<slug>[^/]+)/$', 'dashboard', name='tally-archive'),
+    url(r'^$', 'index', name='tally-index'),
+    url(r'^archive/(?P<slug>[^/]+)/$', 'dashboard', name='tally-archive'),
 
     url(r'^archives/$', 'archives', name='tally-archives'),
 
