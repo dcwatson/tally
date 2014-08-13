@@ -71,6 +71,15 @@ a.archive.active {
     margin: 20px;
 }
 
+.tooltip {
+    position: absolute;
+    opacity: 0;
+    background-color: #000;
+    color: #fff;
+    padding: 10px;
+    border-radius: 5px;
+}
+
 /* SVG */
 
 .axis {
@@ -87,9 +96,21 @@ a.archive.active {
     display: none;
 }
 
+.overlay {
+    fill: none;
+    pointer-events: all;
+}
+
 .grid {
     fill: none;
     stroke: #eee;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+.indicator {
+    display: none;
+    stroke: rgba(0, 20, 100, 0.2);
     stroke-width: 1px;
     shape-rendering: crispEdges;
 }

@@ -2,6 +2,7 @@ var boxWidth = parseInt(d3.select('.chart').style('width').replace('px', '')), b
 var margin = {top: 30, right: 0, bottom: 10, left: 40},
     width = boxWidth - margin.left - margin.right,
     height = boxHeight - margin.top - margin.bottom;
+var metrics = ['count', 'avg', 'sum', 'min', 'max'];
 
 var svg = d3.select('.chart').append('svg').attr({
     'viewBox': '0 0 ' + boxWidth + ' ' + boxHeight,
@@ -17,8 +18,38 @@ var y = d3.scale.linear().range([height, 0]);
 var xAxis = d3.svg.axis().scale(x).orient("top");
 var yAxis = d3.svg.axis().scale(y).orient("left");
 var format = d3.time.format("%m/%d/%Y %I:%M %p");
-var colors = d3.scale.category10();
+var numFormat = d3.format('.3f');
+var colors = d3.scale.ordinal().domain(metrics).range(['#ff0000', '#00ff00', '#0000ff', '#999999', '#ffff00']);
 var data = [];
+
+var bisectDate = d3.bisector(function(d) { return d[0]; }).left;
+var docRoot = d3.select('html').node();
+var tip = d3.select('body').append('div').attr('class', 'tooltip');
+
+function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function mousemove(e, indicator) {
+    var x0 = x.invert(d3.mouse(e)[0]),
+        i = bisectDate(data, x0),
+        d = data[i],
+        t = x(x0);
+    var pos = d3.mouse(docRoot);
+    var html = format(d[0]);
+    metrics.forEach(function(k) {
+        if(d[1]) {
+            html += '<br />' + capitalize(k) + ': ' + numFormat(d[1][k]);
+        }
+    });
+    var left = t > (width / 2) ? pos[0] - 150 : pos[0] + 20;
+    tip.html(html).style({
+        opacity: 0.85,
+        left: left + 'px',
+        top: pos[1] + 'px'
+    });
+    indicator.style('display', 'block').attr("transform", "translate(" + t + ",0)");
+}
 
 function drawChart(root, resolution, keys) {
     var extent = d3.extent(data, function(d) { return d[0]; });
@@ -38,6 +69,8 @@ function drawChart(root, resolution, keys) {
     
     d3.selectAll('path.line').remove();
     d3.selectAll('line.grid').remove();
+    d3.selectAll('.overlay').remove();
+    d3.selectAll('.indicator').remove();
     
     var grid = root.selectAll('.grid').data(y.ticks());
     grid.enter().append('line').attr({
@@ -70,6 +103,17 @@ function drawChart(root, resolution, keys) {
             .attr("stroke", function(d) { return colors(k); })
             .attr("d", line);
     });
+
+    var indicator = root.append("line")
+        .attr("class", "indicator")
+        .attr("y2", height);
+
+    root.append("rect")
+        .attr("class", "overlay")
+        .attr("width", width)
+        .attr("height", height)
+        .on("mouseout", function() { tip.style('opacity', 0); indicator.style('display', 'none'); })
+        .on("mousemove", function() { mousemove(this, indicator); });
 }
 
 function redraw() {
