@@ -1,37 +1,49 @@
 {% extends "tally/base.html" %}
 
 {% block content %}
-<h2>{{ archive }}</h2>
 <div class="row filter">
-    <div class="col-md-8">
-        <label class="checkbox-inline">
-            <input type="checkbox" class="toggle" name="show" value="count" checked="checked" /> Count
-        </label>
-        <label class="checkbox-inline">
-            <input type="checkbox" class="toggle" name="show" value="avg" /> Average
-        </label>
-        <label class="checkbox-inline">
-            <input type="checkbox" class="toggle" name="show" value="sum" /> Sum
-        </label>
-        <label class="checkbox-inline">
-            <input type="checkbox" class="toggle" name="show" value="min" /> Min
-        </label>
-        <label class="checkbox-inline">
-            <input type="checkbox" class="toggle" name="show" value="max" /> Max
-        </label>
-        <select name="interpolate" class="toggle">
-            <option value="step-before">Step Before</option>
-            <option value="step-after">Step After</option>
-            <option value="step">Step</option>
-            <option value="linear">Linear</option>
-            <option value="basis">Basis</option>
-            <option value="cardinal">Cardinal</option>
-            <option value="monotone">Monotone</option>
-        </select>
-    </div>
-    <div class="col-md-4">
-        <input type="text" class="form-control input-sm" />
-    </div>
+    <h2>{{ archive }}</h2>
+    <form action="" method="get" id="filter">
+        <div class="col-md-8">
+            <label class="checkbox-inline">
+                <input type="checkbox" class="toggle" name="show" value="count" checked="checked" /> Count
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" class="toggle" name="show" value="sum" /> Sum
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" class="toggle" name="show" value="avg" /> Average
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" class="toggle" name="show" value="min" /> Min
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" class="toggle" name="show" value="max" /> Max
+            </label>
+            <select name="interpolate" class="toggle">
+                <option value="step-before">Step Before</option>
+                <option value="step-after">Step After</option>
+                <option value="step">Step</option>
+                <option value="linear">Linear</option>
+                <option value="basis">Basis</option>
+                <option value="cardinal">Cardinal</option>
+                <option value="monotone">Monotone</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="text" class="form-control input-sm" name="pattern" id="pattern" />
+                <div class="input-group-btn">
+                    <button type="button" class="btn btn-sm btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-search"></span> <span class="caret"></span></button>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        {% for pat in archive.patterns %}
+                            <li><a href="#{{ pat }}" class="pattern">{{ pat }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
 <div class="chart" data-url="{% url "tally-timedata" slug=archive.slug %}" data-resolution="{{ archive.resolution }}">
 </div>

@@ -190,3 +190,15 @@ class Archive (models.Model):
                 else:
                     t = earliest + (i * self.resolution)
                 yield t, data.get(t, default)
+    
+    def patterns(self, include_all=False, max_depth=3):
+        patterns = set()
+        for row in self.database.execute('SELECT DISTINCT name FROM data'):
+            if include_all:
+                patterns.add(row[0])
+            parts = row[0].split('.')
+            while parts:
+                parts.pop()
+                if max_depth is None or len(parts) <= max_depth:
+                    patterns.add('.'.join(parts) + '.*' if parts else '*')
+        return list(sorted(patterns))

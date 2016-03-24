@@ -40,6 +40,10 @@ a.archive {
     padding: 10px 20px;
     font-size: 16px;
 }
+a.archive:hover {
+	color: #eee;
+	text-decoration: none;
+}
 a.archive .description {
     display: block;
     margin-top: 5px;
@@ -55,13 +59,12 @@ a.archive.active {
 }
 
 .content h2 {
-    padding: 20px;
+    padding: 20px 0px;
 }
 
 .filter {
     padding: 0px 20px 10px 20px;
-    border-bottom: 1px solid #eee;
-    box-shadow: 0px 2px 2px #bbb;
+    border-bottom: 4px solid #eee;
 }
 .filter .col-md-4, .filter .col-md-8 { padding: 0; }
 .filter select { margin-left: 20px; }

@@ -3,6 +3,8 @@ var margin = {top: 30, right: 0, bottom: 10, left: 40},
     width = boxWidth - margin.left - margin.right,
     height = boxHeight - margin.top - margin.bottom;
 var metrics = ['count', 'avg', 'sum', 'min', 'max'];
+//var metricColors = ['#ff0000', '#00ff00', '#0000ff', '#999999', '#ffff00'];
+var metricColors = ['#0000ff', '#999999', '#cccc00', '#00ff00', '#ff0000'];
 
 var svg = d3.select('.chart').append('svg').attr({
     'viewBox': '0 0 ' + boxWidth + ' ' + boxHeight,
@@ -19,7 +21,7 @@ var xAxis = d3.svg.axis().scale(x).orient("top");
 var yAxis = d3.svg.axis().scale(y).orient("left");
 var format = d3.time.format("%m/%d/%Y %I:%M %p");
 var numFormat = d3.format('.3f');
-var colors = d3.scale.ordinal().domain(metrics).range(['#ff0000', '#00ff00', '#0000ff', '#999999', '#ffff00']);
+var colors = d3.scale.ordinal().domain(metrics).range(metricColors);
 var data = [];
 
 var bisectDate = d3.bisector(function(d) { return d[0]; }).left;
@@ -135,4 +137,18 @@ $(function() {
     $('.toggle').change(function() {
         redraw();
     });
+	$('#filter').submit(function() {
+		var q = $.trim($('#pattern').val());
+	    $.getJSON(url, {'q': q}, function(chartData) {
+	        data = chartData;
+	        data.forEach(function(d) { d[0] = new Date(d[0] * 1000); });
+	        redraw();
+	    });
+		return false;
+	});
+	$('a.pattern').click(function() {
+		var pat = $(this).text();
+		$('#pattern').val(pat);
+		$('#filter').submit();
+	});
 });
