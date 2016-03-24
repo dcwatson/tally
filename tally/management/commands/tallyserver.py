@@ -4,6 +4,7 @@ import threading
 import functools
 import logging
 import socket
+import signal
 import tally
 import Queue
 import time
@@ -59,14 +60,25 @@ def flusher(queue, kill, flush_time=None):
 
 class Command (BaseCommand):
 
+    def add_arguments(self, parser):
+        parser.add_argument('--host',
+            default=getattr(settings, 'TALLY_HOST', '127.0.0.1'),
+            help='The host to listen for metrics on (default: 127.0.0.1)'
+        )
+        parser.add_argument('--port',
+            default=getattr(settings, 'TALLY_PORT', 8900),
+            type=int,
+            help='The port to listen for metrics on (default: 8900)'
+        )
+
     def handle(self, *args, **options):
         queue = Queue.Queue()
         kill = threading.Event()
-        threading.Thread(target=functools.partial(listener, queue, kill)).start()
+        signal.signal(signal.SIGTERM, lambda signum, frame: kill.set())
+        threading.Thread(target=functools.partial(listener, queue, kill, options['host'], options['port'])).start()
         threading.Thread(target=functools.partial(flusher, queue, kill)).start()
         while not kill.is_set():
             try:
                 time.sleep(0.5)
             except KeyboardInterrupt:
-                print 'Shutting down...'
                 kill.set()

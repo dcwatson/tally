@@ -36,7 +36,7 @@ def matches(rows, pattern):
 
 class Archive (models.Model):
     name = models.CharField(max_length=200)
-    slug = models.SlugField()
+    slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
     pattern = models.CharField(max_length=100, default='*')
     resolution = models.IntegerField(default=5, help_text='Resolution in seconds.')
